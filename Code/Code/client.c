@@ -19,7 +19,7 @@ char clntName[4][30]; //플레이어들 이름
 
 void *writeSrv(void * parm) //계속 쓰기 쓰레드
 {
-	printf("Hello");
+	//printf("Hello");
 	int clntSd;
 	clntSd=*((int*)parm);
 	char wBuff[BUFSIZ];
