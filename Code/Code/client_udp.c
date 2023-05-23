@@ -46,10 +46,10 @@ void *readSrv(void * parm) //계속 읽기 쓰레드
 
     int readLen;
     while(1){ 
-		recv(clntSd,&status,sizeof(char),0); //서버로부터 계속 정보 받아옴
-		recv(clntSd,&status_num,sizeof(int),0);
-		recv(clntSd,clntCardNum,sizeof(int)*4,0);
-		recv(clntSd,&cardNum,sizeof(int),0);
+		recvfrom(clntSd, &status, sizeof(char), 0, (struct sockaddr *)&clientAddr, &clientAddrLen);
+    	recvfrom(clntSd, &status_num, sizeof(int), 0, (struct sockaddr *)&clientAddr, &clientAddrLen);
+    	recvfrom(clntSd, clntCardNum, sizeof(int) * 4, 0, (struct sockaddr *)&clientAddr, &clientAddrLen);
+    	recvfrom(clntSd, &cardNum, sizeof(int), 0, (struct sockaddr *)&clientAddr, &clientAddrLen);
 		
 		if(status=='r' || status=='y' || status=='g' || status=='p') //플레이어가 각 색깔의 카드를 뒤집음
 		{
