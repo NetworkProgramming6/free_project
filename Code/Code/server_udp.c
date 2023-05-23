@@ -19,6 +19,7 @@ void * client_module(void * data)
 	char wBuff[BUFSIZ];
 	int readLen=0;
 	int sd;
+
 	int threadNum=num; //본인 쓰레드 번호 0,1,2,3
 	struct sockaddr_in clientAddr;
     socklen_t clientAddrLen;
@@ -26,7 +27,7 @@ void * client_module(void * data)
 	sd = *((int *) data);
 	clientAddrLen = sizeof(clientAddr);
 
-	readLen=read(sd,rBuff , sizeof(rBuff)); //플레이어 이름 읽어옴
+	readLen = recvfrom(sd, rBuff, sizeof(rBuff) - 1, 0, (struct sockaddr *)&clientAddr, &clientAddrLen); //플레이어 이름 읽어옴
 	rBuff[readLen]='\0';
 	name[num]=rBuff; //name[쓰레드번호]에 이름 저장
 	num++;
@@ -66,8 +67,6 @@ void * client_module(void * data)
             sendto(sd, &clntCards[tt - 1][tableCardNum[tt - 1] - 1].num, sizeof(int), 0, (struct sockaddr *)&clientAddr, clientAddrLen);
 			if(status=='e') //종료
 			{
-			//	send(connectSd,&status, sizeof(char),0);
-			//	exit(1);
 				break;
 			}
 			turn%=4;
@@ -84,7 +83,8 @@ void * client_module(void * data)
 		else ;
 		
 		///////계속 읽음
-		readLen=recv(connectSd, rBuff,sizeof(rBuff)-1,MSG_DONTWAIT);
+		readLen = recvfrom(sd, rBuff, sizeof(rBuff) - 1, 0, (struct sockaddr *)&clientAddr, &clientAddrLen);
+        rBuff[readLen] = '\0';
 		rBuff[readLen]='\0';
 		if(strcmp(rBuff,"t")==0 && thread[turn]==pthread_self())
 		{
@@ -167,7 +167,7 @@ int main(int argc, char** argv)
 	pthread_mutex_init(&mutex,NULL);
 	printf("waiting for players...\n");
 	
-	sd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP); // UDP
+	sd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP); // UDP
 
 	memset(&srvAddr, 0, sizeof(srvAddr));
 	srvAddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -193,9 +193,11 @@ int main(int argc, char** argv)
 		if (num == 4)
 			break;
 
-		char rBuff[100];
+		char rBuff[BUFSIZ];
 
 		ssize_t readLen = recvfrom(sd, rBuff, sizeof(rBuff) - 1, 0, (struct sockaddr *)&clntAddr, &clntAddrLen);
+		printf("Hello, %s\n",rBuff);
+
 		if (readLen == -1) {
 			continue;
 		} else {
