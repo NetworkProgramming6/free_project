@@ -18,11 +18,15 @@ void * client_module(void * data)
 	char rBuff[BUFSIZ];
 	char wBuff[BUFSIZ];
 	int readLen=0;
-	int connectSd;
+	int sd;
 	int threadNum=num; //본인 쓰레드 번호 0,1,2,3
+	struct sockaddr_in clientAddr;
+    socklen_t clientAddrLen;
+	
+	sd = *((int *) data);
+	clientAddrLen = sizeof(clientAddr);
 
-	connectSd = *((int *) data);
-	readLen=read(connectSd,rBuff , sizeof(rBuff)); //플레이어 이름 읽어옴
+	readLen=read(sd,rBuff , sizeof(rBuff)); //플레이어 이름 읽어옴
 	rBuff[readLen]='\0';
 	name[num]=rBuff; //name[쓰레드번호]에 이름 저장
 	num++;
@@ -35,7 +39,7 @@ void * client_module(void * data)
 	{
 		if(num==4)
 		{
-			send(connectSd,(int*)&num,sizeof(int),0);
+			sendto(sd, (int *)&num, sizeof(int), 0, (struct sockaddr *)&clientAddr, clientAddrLen);
 			break;
 		}
 	}
@@ -47,8 +51,8 @@ void * client_module(void * data)
 		{
 			tempSize++;
 		}
-		send(connectSd,(int*)&tempSize,sizeof(int),0);
-		send(connectSd,name[i],tempSize,0);
+		sendto(sd, (int *)&tempSize, sizeof(int), 0, (struct sockaddr *)&clientAddr, clientAddrLen);
+        sendto(sd, name[i], tempSize, 0, (struct sockaddr *)&clientAddr, clientAddrLen);
 	}
 	//플레이어 다 모임, 게임 시작
 	 
@@ -56,10 +60,10 @@ void * client_module(void * data)
 	{
 		if(statusCheck[threadNum]==1)
 		{
-			send(connectSd,&status,sizeof(char),0);
-			send(connectSd,&status_num,sizeof(int),0);
-			send(connectSd,clntCardNum,sizeof(int)*4,0);
-			send(connectSd,&clntCards[tt-1][tableCardNum[tt-1]-1].num,sizeof(int),0);
+			sendto(sd, &status, sizeof(char), 0, (struct sockaddr *)&clientAddr, clientAddrLen);
+            sendto(sd, &status_num, sizeof(int), 0, (struct sockaddr *)&clientAddr, clientAddrLen);
+            sendto(sd, clntCardNum, sizeof(int) * 4, 0, (struct sockaddr *)&clientAddr, clientAddrLen);
+            sendto(sd, &clntCards[tt - 1][tableCardNum[tt - 1] - 1].num, sizeof(int), 0, (struct sockaddr *)&clientAddr, clientAddrLen);
 			if(status=='e') //종료
 			{
 			//	send(connectSd,&status, sizeof(char),0);
@@ -132,9 +136,10 @@ void * client_module(void * data)
 
 int main(int argc, char** argv)
 {
-	int listenSd, connectSd;
+	int sd;
 	struct sockaddr_in srvAddr, clntAddr;
-	int clntAddrLen, strLen;
+	int strLen;
+	socklen_t clntAddrLen;
  
 	struct card firstCards[56]; //순서대로 정렬된 카드
 	struct card Cards[56]; //나눠줄 랜덤 카드
@@ -162,41 +167,42 @@ int main(int argc, char** argv)
 	pthread_mutex_init(&mutex,NULL);
 	printf("waiting for players...\n");
 	
-	listenSd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	sd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP); // UDP
 
 	memset(&srvAddr, 0, sizeof(srvAddr));
 	srvAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	srvAddr.sin_family = AF_INET;
 	srvAddr.sin_port = htons(9000);
  
-	if(bind(listenSd, (struct sockaddr *) &srvAddr, sizeof(srvAddr))==-1)
+	if(bind(sd, (struct sockaddr *) &srvAddr, sizeof(srvAddr))==-1)
 	{
 		printf("BIND ERROR\n");
 		return 0;
 	}
+	
+	/*
 	if(listen(listenSd, 4)==-1)
 	{
 		printf("LISTEN ERROR\n");
 		return 0;
 	}
-	
+	*/ // UDP
 	clntAddrLen = sizeof(clntAddr);
-	while(num<3) 
-	{
-		if(num==4)
+
+	while (num < 3) {
+		if (num == 4)
 			break;
-		connectSd = accept(listenSd,(struct sockaddr *) &clntAddr, &clntAddrLen);		
-			if(connectSd == -1)
-			{
-				continue;
-			}
-			else
-			{
-				printf("A client is connected... %d/4\n",num+1);
-			}	
-			pthread_create(&thread[num], NULL, client_module, (void *) &connectSd);	
-			
-			
+
+		char rBuff[100];
+
+		ssize_t readLen = recvfrom(sd, rBuff, sizeof(rBuff) - 1, 0, (struct sockaddr *)&clntAddr, &clntAddrLen);
+		if (readLen == -1) {
+			continue;
+		} else {
+			printf("A client is connected... %d/4\n",num+1);
+		}
+
+		pthread_create(&thread[num], NULL, client_module, (void *)&sd);
 	}
 	
 	int res[4];
@@ -206,7 +212,6 @@ int main(int argc, char** argv)
 	pthread_join(thread[3],(void**)&res[3]);
 	
 	pthread_mutex_destroy(&mutex);
-	close(listenSd);
-	close(connectSd);
+	close(sd);
 	return 0;
 }
