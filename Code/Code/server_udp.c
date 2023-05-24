@@ -15,19 +15,33 @@ static pthread_mutex_t mutex; //뮤텍스
 
 void * client_module(void * data)
 {
+
+	int scheduleSd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP); // UDP
+	struct sockaddr_in srvAddr; // each module must have each socket
+	memset(&srvAddr, 0, sizeof(srvAddr));
+	srvAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	srvAddr.sin_family = AF_INET;
+	srvAddr.sin_port = htons(9000+num+1);
+
+	if(bind(scheduleSd, (struct sockaddr *) &srvAddr, sizeof(srvAddr))==-1)
+	{
+		printf("MODULE BIND ERROR\n");
+		return 0;
+	}
+
 	char rBuff[BUFSIZ];
 	char wBuff[BUFSIZ];
 	int readLen=0;
-	int sd;
 
 	int threadNum=num; //본인 쓰레드 번호 0,1,2,3
-	struct sockaddr_in clientAddr;
-    socklen_t clientAddrLen;
+	//struct sockaddr_in clientAddr = *((struct sockaddr_in *) data);
+    struct sockaddr_in clientAddr;
+	socklen_t clientAddrLen;
 	
-	sd = *((int *) data);
+	//sd = *((int *) data);
 	clientAddrLen = sizeof(clientAddr);
-
-	readLen = recvfrom(sd, rBuff, sizeof(rBuff) - 1, 0, (struct sockaddr *)&clientAddr, &clientAddrLen); //플레이어 이름 읽어옴
+	
+	readLen = recvfrom(scheduleSd, rBuff, sizeof(rBuff) - 1, 0, (struct sockaddr *)&clientAddr, &clientAddrLen); //플레이어 이름 읽어옴
 	rBuff[readLen]='\0';
 	name[num]=rBuff; //name[쓰레드번호]에 이름 저장
 	num++;
@@ -36,14 +50,19 @@ void * client_module(void * data)
 		printf("waiting for other players....\n");
 	else
 		printf("GAME START\n");
+	
 	while(1)
 	{
 		if(num==4)
 		{
-			sendto(sd, (int *)&num, sizeof(int), 0, (struct sockaddr *)&clientAddr, clientAddrLen);
+			sendto(scheduleSd, (int *)&num, sizeof(int), 0, (struct sockaddr *)&clientAddr, clientAddrLen);
 			break;
 		}
 	}
+
+	printf("Module Start\n");
+
+	int sd = *((int *) data);
 
 	for(int i=0;i<4;i++) //각 플레이어들한테 플레이어들 이름 알려주기
 	{
@@ -56,7 +75,7 @@ void * client_module(void * data)
         sendto(sd, name[i], tempSize, 0, (struct sockaddr *)&clientAddr, clientAddrLen);
 	}
 	//플레이어 다 모임, 게임 시작
-	 
+
 	while(1)
 	{
 		if(statusCheck[threadNum]==1)
@@ -130,6 +149,7 @@ void * client_module(void * data)
 		}
 			
 	}
+	close(sd);
 	printf("The client is disconnected.\n");
 }
 
@@ -190,21 +210,32 @@ int main(int argc, char** argv)
 	clntAddrLen = sizeof(clntAddr);
 
 	while (num < 3) {
-		if (num == 4)
-			break;
-
 		char rBuff[BUFSIZ];
-
+		printf("%d\n",num);
 		ssize_t readLen = recvfrom(sd, rBuff, sizeof(rBuff) - 1, 0, (struct sockaddr *)&clntAddr, &clntAddrLen);
-		printf("Hello, %s\n",rBuff);
+		//printf("Hello, %s\n",rBuff);
 
 		if (readLen == -1) {
 			continue;
 		} else {
 			printf("A client is connected... %d/4\n",num+1);
 		}
-
-		pthread_create(&thread[num], NULL, client_module, (void *)&sd);
+		sendto(sd, (int *)&num, sizeof(int), 0, (struct sockaddr *)&clntAddr, clntAddrLen); //client number send
+		/*
+		readLen = recvfrom(sd, rBuff, sizeof(rBuff) - 1, 0, (struct sockaddr *)&clntAddr, &clntAddrLen); //플레이어 이름 읽어옴
+		rBuff[readLen]='\0';
+		//name[num]=rBuff; //name[쓰레드번호]에 이름 저장
+		name[num] = malloc(strlen(rBuff) + 1);
+		//printf("%s",rBuff);
+		memcpy(name[num],rBuff,strlen(rBuff)+1);
+		num++;
+		printf("welcome %s\n",name[num-1]);
+		if(num!=4)
+			printf("waiting for other players....\n");
+		else
+			printf("GAME START\n");
+		*/
+		pthread_create(&thread[num], NULL, client_module, (int*)&sd);
 	}
 	
 	int res[4];

@@ -16,8 +16,10 @@ char status; //상태
 int status_num; //상태변화있는 쓰레드 넘버
 struct card CARD[4]; //출력할 테이블위 카드들
 char clntName[4][30]; //플레이어들 이름
+int clientNum; // my client number
 
-struct sockaddr_in clntAddr, srvAddr;
+struct sockaddr_in clntAddr, srvAddr[5]; // 0 - main server, 1~4 - each client module;
+
 void *writeSrv(void * parm) //계속 쓰기 쓰레드
 {
 	int clntSd;
@@ -28,7 +30,7 @@ void *writeSrv(void * parm) //계속 쓰기 쓰레드
     while(status!='e'){ //e(종료)가 아닐때 계속 서버로 보냄
 		fgets(wBuff, BUFSIZ-1, stdin);
 		readLen=strlen(wBuff);
-    	sendto(clntSd, wBuff, readLen - 1, 0, (struct sockaddr *)&srvAddr, sizeof(srvAddr));
+		sendto(clntSd, wBuff, readLen - 1, 0, (struct sockaddr *)&(srvAddr[0]), sizeof(srvAddr[0]));
 		wBuff[0]='\0';
     }
 }
@@ -173,27 +175,32 @@ int main(int argc, char** argv)
         return 0;
     }
     
-	memset(&srvAddr, 0, sizeof(srvAddr));
-    srvAddr.sin_family = AF_INET;
-    srvAddr.sin_addr.s_addr = inet_addr(argv[1]);
-    srvAddr.sin_port = htons(9000);
+	for (int i=0;i<5;i++)
+	{
+		memset(&(srvAddr[i]), 0, sizeof(srvAddr[i]));
+    	srvAddr[i].sin_family = AF_INET;
+    	srvAddr[i].sin_addr.s_addr = inet_addr(argv[1]);
+    	srvAddr[i].sin_port = htons(9000+i);
+	}
 
 	sprintf(wBuff, "INIT");
-	sendto(clntSd, wBuff, strlen(wBuff)-1, 0, (struct sockaddr *)&srvAddr, sizeof(srvAddr));
-    do{ printf("영어이름을 입력해주세요(최대12자) : ");
+	sendto(clntSd, wBuff, strlen(wBuff), 0, (struct sockaddr *)&(srvAddr[0]), sizeof(srvAddr[0]));
+	recvfrom(clntSd, &clientNum, sizeof(int), 0, (struct sockaddr *)&clntAddr, &clntAddrLen); // receive my client number
+    clientNum += 1;
+	do{ printf("영어이름을 입력해주세요(최대12자) : ");
     fgets(wBuff,BUFSIZ-1,stdin);
 	printf("--%s--",wBuff);
     readLen=strlen(wBuff);
 	}while(readLen>13); //12자 이상이면 다시 입력
 
-	sendto(clntSd, wBuff, readLen, 0, (struct sockaddr *)&srvAddr, sizeof(srvAddr));
+	sendto(clntSd, wBuff, readLen, 0, (struct sockaddr *)&(srvAddr[clientNum]), sizeof(srvAddr[clientNum]));
     //이름을 입력받아 서버로 sendto()를 이용해 보냄
  
     printf("waiting for other players...\n");
     int playerNum;
     while(1)
     {
-        recvfrom(clntSd, (int *)&playerNum, sizeof(int), 0, (struct sockaddr *)&srvAddr, &clntAddrLen); //접속한 플레이어 수 서버로부터 계속 받아옴
+        recvfrom(clntSd, (int *)&playerNum, sizeof(int), 0, (struct sockaddr *)&clntAddr, &clntAddrLen); //접속한 플레이어 수 서버로부터 계속 받아옴
         if(playerNum==4) //4명 참가
         {
             printf("GAME START\n");
@@ -204,10 +211,11 @@ int main(int argc, char** argv)
 	for(int i=0;i<4;i++) //플레이어들 이름 받아옴
 	{
 		int tempSize=-1;
-		recvfrom(clntSd, (int *)&tempSize, sizeof(int), 0, (struct sockaddr *)&srvAddr, &clntAddrLen); // 이름 크기
+		recvfrom(clntSd, (int *)&tempSize, sizeof(int), 0, (struct sockaddr *)&clntAddr, &clntAddrLen); // 이름 크기
 		if(tempSize>0) {
-			recvfrom(clntSd, (char *)clntName[i], tempSize, 0, (struct sockaddr *)&srvAddr, &clntAddrLen); // 이름 받아옴
+			recvfrom(clntSd, (char *)clntName[i], tempSize, 0, (struct sockaddr *)&clntAddr, &clntAddrLen); // 이름 받아옴
 			clntName[i][tempSize-1]='\0';
+			//printf("I am %s\n",clntName[i]);
 		}
 	}
  
