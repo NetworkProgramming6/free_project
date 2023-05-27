@@ -30,7 +30,8 @@ int checkSockList(struct sockaddr_in *entry, struct sockaddr_in *list, int count
 
 void * client_module(void * data)
 {
-
+	clock_t start_time, end_time;
+    double execution_time;
 	int scheduleSd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP); // UDP
 	struct sockaddr_in srvAddr; // each module must have each socket
 	struct sockaddr_in clntAddr;
@@ -82,7 +83,7 @@ void * client_module(void * data)
 	}
 
 	printf("%s Module Start. SdNumber: %d\n",name[threadNum],scheduleSd);
-
+	start_time = clock();
 	int sd = scheduleSd;
 
 	for(int i=0;i<4;i++) //각 플레이어들한테 플레이어들 이름 알려주기
@@ -99,12 +100,11 @@ void * client_module(void * data)
 		}
 	}
 	//플레이어 다 모임, 게임 시작
-
+	
 	while(1)
 	{
 		if(statusCheck[threadNum]==1)
 		{
-			//printf("%d ",clientModuleAddr[i].sin_port);
 			for (int i=0;i<4;i++)
 			{
 				sendto(sd, &status, sizeof(char), 0, (struct sockaddr *)&sockets[i] ,clientAddrLen);
@@ -113,7 +113,6 @@ void * client_module(void * data)
 				sendto(sd, &clntCards[tt - 1][tableCardNum[tt - 1] - 1].num, sizeof(int), 0, (struct sockaddr *)&sockets[i], clientAddrLen);
 			}
 
-			printf("\n");
 			if(status=='e') //종료
 			{
 				break;
@@ -134,19 +133,23 @@ void * client_module(void * data)
 		///////계속 읽음
 		readLen = recvfrom(sd, rBuff, sizeof(rBuff) - 1, 0, (struct sockaddr *)&clntAddr, &clientAddrLen);
         rBuff[readLen] = '\0';
-		rBuff[readLen]='\0';
 		if(strcmp(rBuff,"t")==0 && thread[turn]==pthread_self())
 		{
+			//printf("%d\n",turn);
 			tableCardNum[turn]++;
 			clntCardNum[turn]--;
 			status=*clntCards[turn][tableCardNum[turn]-1].color;
 			status_num=turn;
+			pthread_mutex_lock(&mutex);
+			statusCheck[threadNum]=1;
+			pthread_mutex_unlock(&mutex);
+			/*
 			for(int i=0;i<4;i++){
 				pthread_mutex_lock(&mutex);
 				statusCheck[i]=1;
 				pthread_mutex_unlock(&mutex);
 			}
-
+			*/
 			turn++;
 			tt=turn;
 			//turn=turn%4;
@@ -180,6 +183,13 @@ void * client_module(void * data)
 			
 	}
 	close(sd);
+
+	end_time = clock();
+	// 실행 시간 계산
+	execution_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+	
+	// 실행 시간 출력
+    printf("Execution Time: %f seconds\n", execution_time);
 	printf("The client is disconnected.\n");
 }
 
