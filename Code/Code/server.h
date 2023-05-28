@@ -15,7 +15,7 @@ extern int tt; //차례temp
 extern char *name[4]; //이름
 extern struct card clntCards[4][56]; //카드
 extern int num; //접속인원 확인
-extern int clntCardNum[4]; //카드 개수
+extern int clientCardNumber[4]; //카드 개수.
 extern int tableCardNum[4]; //테이블 카드 개수
 extern pthread_t thread[4]; //4명 쓰레드
 extern int status_num; //누구 상태가 변했는지
@@ -79,13 +79,13 @@ void bell_O(int threadNum)
 	}
 	for(i=0;i<sum;i++)
 	{
-		clntCards[threadNum][clntCardNum[threadNum]+tableCardNum[threadNum]+i]=temp[i]; //테이블에 있던 카드 벨 누른 플레이어에게 주기
+		clntCards[threadNum][clientCardNumber[threadNum]+tableCardNum[threadNum]+i]=temp[i]; //테이블에 있던 카드 벨 누른 플레이어에게 주기
 	}
 
 	for(i=0;i<4;i++)
 	{
 		if(i==threadNum)
-			clntCardNum[threadNum]+=sum; //벨 누른 사람의 경우 카드 개수 증가
+			clientCardNumber[threadNum]+=sum; //벨 누른 사람의 경우 카드 개수 증가
 		//else
 		pullCard(i,tableCardNum[i]); //테이블에 있던 카드 수 만큼 카드 구조체 끌어옴
 		tableCardNum[i]=0; //테이블의 카드 없어짐
@@ -96,7 +96,7 @@ void bell_X(int threadNum)
 {
 	int i,j=0;
 	struct card temp[3];
-	for(i=(clntCardNum[threadNum]+tableCardNum[threadNum]-1);i>=clntCardNum[threadNum]+tableCardNum[threadNum]-3;i--)
+	for(i=(clientCardNumber[threadNum]+tableCardNum[threadNum]-1);i>=clientCardNumber[threadNum]+tableCardNum[threadNum]-3;i--)
 	{
 		temp[j]=clntCards[threadNum][i]; //옮길 카드 3장 temp에 임시로 저장
 		clntCards[threadNum][i].num=0; //옮긴 카드 없애주기
@@ -108,25 +108,25 @@ void bell_X(int threadNum)
 	{
 		if(threadNum!=i) //벨 잘못 누르지 않은 플레이어의 경우
 		{
-			clntCards[i][clntCardNum[i]+tableCardNum[i]]=temp[j]; //카드 하나 획득
+			clntCards[i][clientCardNumber[i]+tableCardNum[i]]=temp[j]; //카드 하나 획득
 			j++;
-			clntCardNum[i]++; //카드 1개 획득
+			clientCardNumber[i]++; //카드 1개 획득
 		}
 		else //벨 잘못 누른 플레이어의 경우
 		{
-			clntCardNum[i]-=3; //카드 3개 손실 발생
+			clientCardNumber[i]-=3; //카드 3개 손실 발생
 		}
 	}
 }
 
 void pullCard(int threadNum, int howmany)
 {
-	for(int i=0;i<clntCardNum[threadNum];i++)
+	for(int i=0;i<clientCardNumber[threadNum];i++)
 	{
 		clntCards[threadNum][i]=clntCards[threadNum][i+howmany];
 	}
 
-	for(int i=clntCardNum[threadNum]+tableCardNum[threadNum]-1;i>=clntCardNum[threadNum];i--)
+	for(int i=clientCardNumber[threadNum]+tableCardNum[threadNum]-1;i>=clientCardNumber[threadNum];i--)
 	{
 		clntCards[threadNum][i].color=NULL;
 		clntCards[threadNum][i].num=0;
@@ -136,7 +136,7 @@ void pullCard(int threadNum, int howmany)
 void checkGameEnd()
 {
 	for(int i=0;i<4;i++)
-		if(clntCardNum[i]<=0) //플레이어 카드 0이하인지 체크
+		if(clientCardNumber[i]<=0) //플레이어 카드 0이하인지 체크
 		{
 			status='e';
 			for(int j=0;j<4;j++)
