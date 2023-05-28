@@ -197,7 +197,7 @@ int main(int argc, char** argv)
 	do{ printf("영어이름을 입력해주세요(최대12자) : ");
     fgets(wBuff,BUFSIZ-1,stdin);
     readLen=strlen(wBuff);
-	}while(readLen>13); //12자 이상이면 다시 입력
+	}while(readLen>13); //12자 이상이면 다시 입력.
 
 	sendto(clientSocketDescriptor, wBuff, readLen, 0, (struct sockaddr *)&srvAddr[1], sizeof(srvAddr[1]));
     //이름을 입력받아 서버로 sendto()를 이용해 보냄
