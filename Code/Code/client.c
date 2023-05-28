@@ -9,16 +9,16 @@
 #include <time.h>
 #include "card.h"
 
-int clntSd; //클라이언트 소켓 디스크립터
+int clntSd; //클라이언트 소켓 디스크립터 부분
 int i=0;
 int cardNum;
-int clntCardNum[4]={0,}; // 플레이어들 카드 개수
-char status; //상태
-int status_num; //상태변화있는 쓰레드 넘버
-struct card CARD[4]; //출력할 테이블위 카드들
+int clntCardNum[4]={0,}; // 플레이어들 카드 개수 확인
+char status; //상태 체크
+int status_num; //상태변화가 있는 쓰레드 넘버
+struct card CARD[4]; //출력할 테이블 위 카드들
 char clntName[4][30]; //플레이어들 이름
 
-void *writeSrv(void * parm) //계속 쓰기 쓰레드
+void *writeSrv(void * parm) //계속 쓰기를 실행하는 쓰레드
 {
 	//printf("Hello");
 	int clntSd;
@@ -26,7 +26,7 @@ void *writeSrv(void * parm) //계속 쓰기 쓰레드
 	char wBuff[BUFSIZ];
     int readLen;
 	
-    while(status!='e'){ //e(종료)가 아닐때 계속 서버로 보냄
+    while(status!='e'){ //e(종료)가 아닌 경우 계속해서 서버로 보냄
 		//fgets(wBuff, BUFSIZ-1, stdin);
 		//readLen=strlen(wBuff);
 		usleep(10000);
@@ -38,14 +38,14 @@ void *writeSrv(void * parm) //계속 쓰기 쓰레드
     }
 }
 
-void *readSrv(void * parm) //계속 읽기 쓰레드
+void *readSrv(void * parm) //계속 읽기를 실행하는 쓰레드
 {
 	clock_t start_time, end_time;
     double execution_time;
     int clntSd;
 	clntSd=*((int*)parm);
 
-	for(int i=0;i<4;i++) //인쇄할 카드 0으로 초기화
+	for(int i=0;i<4;i++) //인쇄할 카드를 0으로 초기화
 	{
 		CARD[i].num=0;
 		CARD[i].color=NULL;
@@ -55,11 +55,11 @@ void *readSrv(void * parm) //계속 읽기 쓰레드
 	start_time = clock();
 	
     while(1){ 
-		recv(clntSd,&status,sizeof(char),0); //서버로부터 계속 정보 받아옴
+		recv(clntSd,&status,sizeof(char),0); //서버로부터 계속해서 정보 받아옴
 		recv(clntSd,&status_num,sizeof(int),0);
 		recv(clntSd,clntCardNum,sizeof(int)*4,0);
 		recv(clntSd,&cardNum,sizeof(int),0);
-		if(status=='r' || status=='y' || status=='g' || status=='p') //플레이어가 각 색깔의 카드를 뒤집음
+		if(status=='r' || status=='y' || status=='g' || status=='p') // 각 색깔의 카드를 뒤집음
 		{
 			if(status=='r')
 				CARD[status_num].color="red";
@@ -84,8 +84,7 @@ void *readSrv(void * parm) //계속 읽기 쓰레드
 		}
 
 
-		else if(status=='o') //플레이어가 벨을 눌렀음, 벨누를때맞음
-		{
+		else if(status=='o') //플레이어가 벨을 눌렀는데 그게 벨누를 상황이 맞을 경우		{
 			printNullCard(); 
 			printf("%s님이 벨을 울렸습니다! 테이블 위 카드를 가져갑니다!\n",clntName[status_num]);
 			printf("[%-12s] [%-12s] [%-12s] [%-12s]\n",clntName[0],clntName[1],clntName[2],clntName[3]);
@@ -97,21 +96,21 @@ void *readSrv(void * parm) //계속 읽기 쓰레드
 			}
 		}
 
-		else if(status=='x') //플레이어가 벨을 잘못눌렀음
+		else if(status=='x') //플레이어가 벨을 잘못눌렀을 경우
 		{
 			printf("%s님이 벨을 잘못 눌렀습니다! 한 장씩 카드를 나눠줍니다!\n",clntName[status_num]);
 			printf("[%-12s] [%-12s] [%-12s] [%-12s]\n",clntName[0],clntName[1],clntName[2],clntName[3]);
 			printf("[%6d장    ] [%6d장    ] [%6d장    ] [%6d장    ]\n",clntCardNum[0],clntCardNum[1],clntCardNum[2],clntCardNum[3]);
 		}
 
-		else if(status=='e') //카드가 없는 플레이어가 생겨 게임종료
+		else if(status=='e') //카드가 없는 플레이어가 생기면 게임을 종료한다.
 		{
 			break;
 		}
 		
 
 	} 
-	struct card rank[4]; //랭킹용 구조체
+	struct card rank[4]; //랭킹
 	struct card temp;
 	for(int i=0;i<4;i++) 
 	{
@@ -122,7 +121,7 @@ void *readSrv(void * parm) //계속 읽기 쓰레드
 	for(int i=0;i<3;i++){ 
 		for(int j=i+1;j<4;j++)
 		{
-			if(rank[j].num>rank[i].num){ //rank의 num을 보고 내림차순 정렬
+			if(rank[j].num>rank[i].num){ //rank의 num을 보고 내림차순으로 정렬
 				temp=rank[i];
 				rank[i]=rank[j];
 				rank[j]=temp;
@@ -148,15 +147,15 @@ void *readSrv(void * parm) //계속 읽기 쓰레드
 
 	end_time = clock();
 
-	// 실행 시간 계산
+	// 실행 시간 계산하는 부분
 	execution_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 	
-	// 실행 시간 출력
+	// 실행 시간 출력하는 부분
     printf("Execution Time: %f seconds\n", execution_time);
 
 }
 
-//////////////// M A I N ////////////////
+///메인
 int main(int argc, char** argv)
 {
     char *name;
@@ -171,7 +170,7 @@ int main(int argc, char** argv)
     if(argc!=2) {
         printf("Usage : %s [IP Address]\n", argv[0]);
     }
-    clntSd=socket(AF_INET, SOCK_STREAM,0);//클라이언트 소켓 선언함
+    clntSd=socket(AF_INET, SOCK_STREAM,0);//클라이언트 소켓 선언
     
     printf("🍓 🍋 🍈 🍇 🍓 🍋 🍈 🍇 🍓 🍋 🍈 🍇 🍓 🍋 🍈 🍇 🍓 🍋 🍈 🍇\n\n");
     printf("                        Halli Galli                        \n\n");
@@ -179,7 +178,7 @@ int main(int argc, char** argv)
  	
 	printf("t : 카드 뒤집기 / b : 벨 누르기\n");
 
-	clntSd=socket(AF_INET, SOCK_STREAM,0); //클라이언트 소켓 선언함
+	clntSd=socket(AF_INET, SOCK_STREAM,0); //클라이언트 소켓 선언
     memset(&clntAddr,0,sizeof(clntAddr));
     clntAddr.sin_family=AF_INET;
     clntAddr.sin_addr.s_addr=inet_addr(argv[1]);
@@ -188,33 +187,33 @@ int main(int argc, char** argv)
     {
         close(clntSd);
     
-    }//connect함수를 통해 서버와의 연결을 기다림
+    }//connect함수를 통해 서버와의 연결을 기다리는 부분
     
     do{ printf("영어이름을 입력해주세요(최대12자) : ");
     fgets(wBuff,BUFSIZ-1,stdin);
     readLen=strlen(wBuff);
-	}while(readLen>13); //12자 이상이면 다시 입력
+	}while(readLen>13); //12자 이상이면 다시 입력하게끔 유도
     write(clntSd,wBuff,readLen);
-    //이름을 입력받아 서버로 write해줌
+    //이름을 입력받아서 서버로 write해줌
  
     printf("waiting for other players...\n");
     int playerNum;
     while(1)
     {
-        recv(clntSd,(int*)&playerNum,sizeof(int),0); //접속한 플레이어 수 서버로부터 계속 받아옴
+        recv(clntSd,(int*)&playerNum,sizeof(int),0); //접속한 플레이어 수 서버로부터 받아옴
         if(playerNum==4) //4명 참가
         {
             printf("GAME START\n");
             break;
-        }//게임에 접속한 client 수가 4일 때까지 기다린 후 4인경우 게임 시작
+        }//게임에 접속한 client 수가 4일 때까지 기다린 후 4인이 모든 참석한 경우 게임 시작
     }
 
-	for(int i=0;i<4;i++) //플레이어들 이름 받아옴
+	for(int i=0;i<4;i++) //플레이어들 이름을 받아옴
 	{
 		int tempSize=-1;
 		recv(clntSd,(int*)&tempSize,sizeof(int),0); //이름 크기
 		if(tempSize>0) {
-			recv(clntSd,(char*)clntName[i],tempSize,0); //이름받아옴
+			recv(clntSd,(char*)clntName[i],tempSize,0); //이름 받아옴
 			clntName[i][tempSize-1]='\0'; }
 	}
  
