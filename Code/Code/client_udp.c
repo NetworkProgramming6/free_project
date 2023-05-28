@@ -63,8 +63,6 @@ void *readSrv(void * parm) //계속 읽기 쓰레드
     	recvfrom(clientSocketDescriptor, clientCardNumber, sizeof(int) * 4, 0, (struct sockaddr *)&tmp, &srvAddrLen);
     	recvfrom(clientSocketDescriptor, &numberOfCards, sizeof(int), 0, (struct sockaddr *)&tmp, &srvAddrLen);
 
-		printf("%c %d %d\n",playerStatus,statusThreadNumber,numberOfCards);
-
 		if(playerStatus=='r' || playerStatus=='y' || playerStatus=='g' || playerStatus=='p') //플레이어가 각 색깔의 카드를 뒤집음
 		{
 			if(playerStatus=='r')
@@ -206,7 +204,7 @@ int main(int argc, char** argv)
     int playerNum;
     while(1)
     {
-        recvfrom(clientSocketDescriptor, (int *)&playerNum, sizeof(int), 0, (struct sockaddr *)&srvAddr, &srvAddrLen); //접속한 플레이어 수 서버로부터 계속 받아옴
+        recvfrom(clientSocketDescriptor, (int *)&playerNum, sizeof(int), 0, (struct sockaddr *)&srvAddr[1], &srvAddrLen); //접속한 플레이어 수 서버로부터 계속 받아옴
         if(playerNum==4) //4명 참가
         {
             printf("GAME START\n");
@@ -217,9 +215,9 @@ int main(int argc, char** argv)
 	for(int i=0;i<4;i++) //이름 받아옴
 	{
 		int tempSize=-1;
-		recvfrom(clientSocketDescriptor, (int *)&tempSize, sizeof(int), 0, (struct sockaddr *)&srvAddr, &srvAddrLen); // 이름 크기
+		recvfrom(clientSocketDescriptor, (int *)&tempSize, sizeof(int), 0, (struct sockaddr *)&srvAddr[1], &srvAddrLen); // 이름 크기
 		if(tempSize>0) {
-			recvfrom(clientSocketDescriptor, (char *)playerName[i], tempSize, 0, (struct sockaddr *)&srvAddr, &srvAddrLen); // 이름 받아옴
+			recvfrom(clientSocketDescriptor, (char *)playerName[i], tempSize, 0, (struct sockaddr *)&srvAddr[1], &srvAddrLen); // 이름 받아옴
 			playerName[i][tempSize-1]='\0';
 			//printf("I am %s\n",playerName[i]);
 		}
