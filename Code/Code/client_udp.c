@@ -26,10 +26,14 @@ void *writeSrv(void * parm) //계속 쓰기 쓰레드
 	clntSd=*((int*)parm);
 	char wBuff[BUFSIZ];
     int readLen;
-	
+
     while(status!='e'){ //e(종료)가 아닐때 계속 서버로 보냄
-		fgets(wBuff, BUFSIZ-1, stdin);
-		readLen=strlen(wBuff);
+		//fgets(wBuff, BUFSIZ-1, stdin);
+		//readLen=strlen(wBuff);
+		usleep(10000);
+		wBuff[0] = 't';
+		wBuff[1] = '\0';
+		readLen = 2;
 		sendto(clntSd, wBuff, readLen - 1, 0, (struct sockaddr *)&srvAddr[1], sizeof(srvAddr[1]));
 		wBuff[0]='\0';
     }
@@ -37,6 +41,8 @@ void *writeSrv(void * parm) //계속 쓰기 쓰레드
 
 void *readSrv(void * parm) //계속 읽기 쓰레드
 {
+	clock_t start_time, end_time;
+    double execution_time;
     int clntSd;
 	clntSd=*((int*)parm);
 
@@ -49,13 +55,16 @@ void *readSrv(void * parm) //계속 읽기 쓰레드
     int readLen;
 	socklen_t srvAddrLen = sizeof(srvAddr);
 	struct sockaddr_in tmp;
+	start_time = clock();
 
     while(1){
 		recvfrom(clntSd, &status, sizeof(char), 0, (struct sockaddr *)&tmp, &srvAddrLen);
     	recvfrom(clntSd, &status_num, sizeof(int), 0, (struct sockaddr *)&tmp, &srvAddrLen);
     	recvfrom(clntSd, clntCardNum, sizeof(int) * 4, 0, (struct sockaddr *)&tmp, &srvAddrLen);
     	recvfrom(clntSd, &cardNum, sizeof(int), 0, (struct sockaddr *)&tmp, &srvAddrLen);
-		
+
+		printf("%c %d %d\n",status,status_num,cardNum);
+
 		if(status=='r' || status=='y' || status=='g' || status=='p') //플레이어가 각 색깔의 카드를 뒤집음
 		{
 			if(status=='r')
@@ -142,6 +151,14 @@ void *readSrv(void * parm) //계속 읽기 쓰레드
 			printf("종료하시려면 엔터를 눌러주세요\n");
 		}
 	}
+	end_time = clock();
+
+	// 실행 시간 계산
+	execution_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+	
+	// 실행 시간 출력
+    printf("Execution Time: %f seconds\n", execution_time);
+
 }
 
 //////////////// M A I N ////////////////

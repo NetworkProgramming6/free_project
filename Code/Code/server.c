@@ -15,6 +15,8 @@ static pthread_mutex_t mutex; //뮤텍스
 
 void * client_module(void * data)
 {
+	clock_t start_time, end_time;
+    double execution_time;
 	char rBuff[BUFSIZ];
 	char wBuff[BUFSIZ];
 	int readLen=0;
@@ -40,6 +42,7 @@ void * client_module(void * data)
 		}
 	}
 
+	start_time = clock();
 	for(int i=0;i<4;i++) //각 플레이어들한테 플레이어들 이름 알려주기
 	{
 		int tempSize=0;
@@ -88,12 +91,13 @@ void * client_module(void * data)
 			clntCardNum[turn]--;
 			status=*clntCards[turn][tableCardNum[turn]-1].color;
 			status_num=turn;
+			
 			for(int i=0;i<4;i++){
 				pthread_mutex_lock(&mutex);
 				statusCheck[i]=1;
 				pthread_mutex_unlock(&mutex);
 			}
-
+			
 			turn++;
 			tt=turn;
 			//turn=turn%4;
@@ -126,6 +130,13 @@ void * client_module(void * data)
 		}
 			
 	}
+
+	end_time = clock();
+	// 실행 시간 계산
+	execution_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+	
+	// 실행 시간 출력
+    printf("Execution Time: %f seconds\n", execution_time);
 	printf("The client is disconnected.\n");
 }
 
@@ -186,15 +197,16 @@ int main(int argc, char** argv)
 		if(num==4)
 			break;
 		connectSd = accept(listenSd,(struct sockaddr *) &clntAddr, &clntAddrLen);		
-			if(connectSd == -1)
-			{
-				continue;
-			}
-			else
-			{
-				printf("A client is connected... %d/4\n",num+1);
-			}	
-			pthread_create(&thread[num], NULL, client_module, (void *) &connectSd);	
+		printf("%d %d\n",listenSd,connectSd);
+		if(connectSd == -1)
+		{
+			continue;
+		}
+		else
+		{
+			printf("A client is connected... %d/4\n",num+1);
+		}	
+		pthread_create(&thread[num], NULL, client_module, (void *) &connectSd);	
 			
 			
 	}
