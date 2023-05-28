@@ -5,7 +5,7 @@ int tt=-1; //차례temp
 char *name[4]; //플레이어 이름
 struct card clntCards[4][56]; //플레이어 카드
 int num=0; //접속인원
-int clntCardNum[4]; //플레이어 카드 개수
+int clntCardNum[4]; // 사용자 카드 개수
 int tableCardNum[4]; //테이블 카드 개수
 pthread_t thread[4]; //플레이어 4명 쓰레드
 int status_num=-1; //몇번 플레이어 상태가 변했는지
