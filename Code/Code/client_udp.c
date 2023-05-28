@@ -26,11 +26,11 @@ void *writeSrv(void * parm) //계속 쓰기 쓰레드
 	clntSd=*((int*)parm);
 	char wBuff[BUFSIZ];
     int readLen;
-	
+
     while(status!='e'){ //e(종료)가 아닐때 계속 서버로 보냄
 		//fgets(wBuff, BUFSIZ-1, stdin);
 		//readLen=strlen(wBuff);
-		sleep(0.1);
+		usleep(10000);
 		wBuff[0] = 't';
 		wBuff[1] = '\0';
 		readLen = 2;
@@ -63,6 +63,7 @@ void *readSrv(void * parm) //계속 읽기 쓰레드
     	recvfrom(clntSd, clntCardNum, sizeof(int) * 4, 0, (struct sockaddr *)&tmp, &srvAddrLen);
     	recvfrom(clntSd, &cardNum, sizeof(int), 0, (struct sockaddr *)&tmp, &srvAddrLen);
 
+		printf("%c %d %d\n",status,status_num,cardNum);
 
 		if(status=='r' || status=='y' || status=='g' || status=='p') //플레이어가 각 색깔의 카드를 뒤집음
 		{

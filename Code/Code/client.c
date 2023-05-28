@@ -29,7 +29,7 @@ void *writeSrv(void * parm) //계속 쓰기 쓰레드
     while(status!='e'){ //e(종료)가 아닐때 계속 서버로 보냄
 		//fgets(wBuff, BUFSIZ-1, stdin);
 		//readLen=strlen(wBuff);
-		sleep(0.1);
+		usleep(10000);
 		wBuff[0] = 't';
 		wBuff[1] = '\0';
 		readLen = 2;
