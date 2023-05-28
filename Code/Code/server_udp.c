@@ -1,14 +1,14 @@
 #include "server.h"
 
-int turn=0; //누구 차례인지
+int turn=0; //누구 차례인지 확인
 int tt=-1; //차례temp
-char *name[4]; //플레이어 이름
-struct card clntCards[4][56]; //플레이어 카드
-int num=0; //접속인원
-int clntCardNum[4]; //플레이어 카드 개수
+char *name[4]; //이름
+struct card clntCards[4][56]; //카드
+int num=0; //접속인원 확인
+int clientCardNumber[4]; //카드 개수
 int tableCardNum[4]; //테이블 카드 개수
-pthread_t thread[4]; //플레이어 4명 쓰레드
-int status_num=-1; //몇번 플레이어 상태가 변했는지
+pthread_t thread[4]; //4명 쓰레드
+int status_num=-1; //누구 상태가 변했는지
 char status='\0'; //현재 상태 r,y,g,p:빨강,노랑,초록,보라색 카드 뒤집힘 /  o:벨 맞음 / x:벨 잘못누름 / e:게임종료
 int statusCheck[4]={0,}; //1 : 클라이언트로 보내야할거 있음, 0 : 다 보냄
 struct sockaddr_in sockets[4];
@@ -86,7 +86,7 @@ void * client_module(void * data)
 	start_time = clock();
 	int sd = scheduleSd;
 
-	for(int i=0;i<4;i++) //각 플레이어들한테 플레이어들 이름 알려주기
+	for(int i=0;i<4;i++) //각 플레이어들한테 이름 알려주기
 	{
 		for (int j=0;j<4;j++)
 		{
@@ -99,7 +99,7 @@ void * client_module(void * data)
 			sendto(sd, name[j], tempSize, 0, (struct sockaddr *)&sockets[i], clientAddrLen);
 		}
 	}
-	//플레이어 다 모임, 게임 시작
+	//플레이어 다 모이면 게임 시작
 	
 	while(1)
 	{
@@ -109,7 +109,7 @@ void * client_module(void * data)
 			{
 				sendto(sd, &status, sizeof(char), 0, (struct sockaddr *)&sockets[i] ,clientAddrLen);
 				sendto(sd, &status_num, sizeof(int), 0, (struct sockaddr *)&sockets[i], clientAddrLen);
-				sendto(sd, clntCardNum, sizeof(int) * 4, 0, (struct sockaddr *)&sockets[i], clientAddrLen);
+				sendto(sd, clientCardNumber, sizeof(int) * 4, 0, (struct sockaddr *)&sockets[i], clientAddrLen);
 				sendto(sd, &clntCards[tt - 1][tableCardNum[tt - 1] - 1].num, sizeof(int), 0, (struct sockaddr *)&sockets[i], clientAddrLen);
 			}
 
@@ -130,14 +130,14 @@ void * client_module(void * data)
 		}
 		else ;
 		
-		///////계속 읽음
+		//계속 읽음
 		readLen = recvfrom(sd, rBuff, sizeof(rBuff) - 1, 0, (struct sockaddr *)&clntAddr, &clientAddrLen);
         rBuff[readLen] = '\0';
 		if(strcmp(rBuff,"t")==0 && thread[turn]==pthread_self())
 		{
 			//printf("%d\n",turn);
 			tableCardNum[turn]++;
-			clntCardNum[turn]--;
+			clientCardNumber[turn]--;
 			status=*clntCards[turn][tableCardNum[turn]-1].color;
 			status_num=turn;
 			pthread_mutex_lock(&mutex);
@@ -154,22 +154,22 @@ void * client_module(void * data)
 			tt=turn;
 			//turn=turn%4;
 			rBuff[0]='\0'; 
-			checkGameEnd(); //게임 끝나는지 확인
+			checkGameEnd(); //게임 끝나는지 확인 필요
 		}
 		else if(strcmp(rBuff,"t")==0 && thread[turn]!=pthread_self())	
 		{
 			;
 		}
 		else if(strcmp(rBuff,"b")==0)// && status!='o' && status!='x')
-		{ //bell을 둘이서 눌렀을때 처리하기?
-			if(bell()==1 && status!='o') //벨 누를 상황임, 그턴에  처음누른사람
+		{ //bell을 둘이서 눌렀을 경우 처리하는 파트
+			if(bell()==1 && status!='o') //벨 누를 상황인데 그턴에 처음누른사람
 			{
 				bell_O(threadNum);
 				status='o';
 				status_num=threadNum;
 				checkGameEnd(); //게임 끝나는지 확인
 			}
-			else if(bell()==0) //벨 누를 상황 아님
+			else if(bell()==0) //벨 누를 상황 아닌 경우
 			{
 				bell_X(threadNum);
 				status='x';
@@ -185,10 +185,10 @@ void * client_module(void * data)
 	close(sd);
 
 	end_time = clock();
-	// 실행 시간 계산
+	// 실행 시간 계산 확인
 	execution_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 	
-	// 실행 시간 출력
+	// 실행 시간 출력 확인 
     printf("Execution Time: %f seconds\n", execution_time);
 	printf("The client is disconnected.\n");
 }
@@ -201,13 +201,13 @@ int main(int argc, char** argv)
 	int strLen;
 	socklen_t clntAddrLen;
  
-	struct card firstCards[56]; //순서대로 정렬된 카드
+	struct card firstCards[56]; //정렬된 카드
 	struct card Cards[56]; //나눠줄 랜덤 카드
-	setCard(firstCards); //카드 순서대로 생성
+	setCard(firstCards); //순서대로 카드 생성
 	mixCard(firstCards,Cards); //카드 섞기
 	
 	int i=0,j=0,k=0;
-	for(j=0;j<4;j++) //섞은 카드 14장씩 분배
+	for(j=0;j<4;j++) //섞은 카드를 14장씩 분배
 	{
 		for(k=0;k<14;k++)
 		{
@@ -215,7 +215,7 @@ int main(int argc, char** argv)
 			clntCards[j][k].num=Cards[i].num;
 			i++;
 		}
-		clntCardNum[j]=14;
+		clientCardNumber[j]=14;
 		tableCardNum[j]=0;
 	}
 	//printInformation();
