@@ -3,7 +3,7 @@
 int turn=0; //누구 차례인지
 int tt=-1; //차례temp
 char *name[4]; //이름
-struct card clntCards[4][56]; // 카드
+struct card clientCards[4][56]; // 카드
 int num=0; //접속인원
 int clientCardNumber[4]; //카드 개수
 int tableCardNum[4]; //테이블 카드 개수
@@ -59,7 +59,7 @@ void * client_module(void * data)
             send(connectSd,&playerStatus,sizeof(char),0);
             send(connectSd,&statusThreadNumber,sizeof(int),0);
             send(connectSd,clientCardNumber,sizeof(int)*4,0);
-            send(connectSd,&clntCards[tt-1][tableCardNum[tt-1]-1].num,sizeof(int),0);
+            send(connectSd,&clientCards[tt-1][tableCardNum[tt-1]-1].num,sizeof(int),0);
             if(playerStatus=='e') //종료
             {
             //  send(connectSd,&playerStatus, sizeof(char),0);
@@ -86,7 +86,7 @@ void * client_module(void * data)
         {
             tableCardNum[turn]++;
             clientCardNumber[turn]--;
-            playerStatus=*clntCards[turn][tableCardNum[turn]-1].color;
+            playerStatus=*clientCards[turn][tableCardNum[turn]-1].color;
             statusThreadNumber=turn;
             for(int i=0;i<4;i++){
                 pthread_mutex_lock(&mutex);
@@ -146,8 +146,8 @@ int main(int argc, char** argv)
     {
         for(k=0;k<14;k++)
         {
-            clntCards[j][k].color=Cards[i].color;
-            clntCards[j][k].num=Cards[i].num;
+            clientCards[j][k].color=Cards[i].color;
+            clientCards[j][k].num=Cards[i].num;
             i++;
         }
         clientCardNumber[j]=14;

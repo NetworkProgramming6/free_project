@@ -3,7 +3,7 @@
 int turn=0; //누구 차례인지 확인
 int tt=-1; //차례temp
 char *name[4]; //이름
-struct card clntCards[4][56]; //카드
+struct card clientCards[4][56]; //카드
 int num=0; //접속인원 확인
 int clientCardNumber[4]; //카드 개수
 int tableCardNum[4]; //테이블 카드 개수
@@ -12,7 +12,6 @@ int status_num=-1; //누구 상태가 변했는지
 char status='\0'; //현재 상태 r,y,g,p:빨강,노랑,초록,보라색 카드 뒤집힘 /  o:벨 맞음 / x:벨 잘못누름 / e:게임종료
 int statusCheck[4]={0,}; //1 : 클라이언트로 보내야할거 있음, 0 : 다 보냄
 struct sockaddr_in sockets[4];
-struct sockaddr_in clientModuleAddr[4];
 static pthread_mutex_t mutex; //뮤텍스
 
 int checkSockList(struct sockaddr_in *entry, struct sockaddr_in *list, int count)
@@ -33,13 +32,7 @@ void * client_module(void * data)
 	clock_t start_time, end_time;
     double execution_time;
 	int scheduleSd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP); // UDP
-	struct sockaddr_in srvAddr; // each module must have each socket
 	struct sockaddr_in clntAddr;
-	
-	memset(&srvAddr, 0, sizeof(srvAddr));
-	srvAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	srvAddr.sin_family = AF_INET;
-	srvAddr.sin_port = htons(9000+num+1);
 
 	char rBuff[BUFSIZ];
 	char wBuff[BUFSIZ];
@@ -110,7 +103,7 @@ void * client_module(void * data)
 				sendto(sd, &status, sizeof(char), 0, (struct sockaddr *)&sockets[i] ,clientAddrLen);
 				sendto(sd, &status_num, sizeof(int), 0, (struct sockaddr *)&sockets[i], clientAddrLen);
 				sendto(sd, clientCardNumber, sizeof(int) * 4, 0, (struct sockaddr *)&sockets[i], clientAddrLen);
-				sendto(sd, &clntCards[tt - 1][tableCardNum[tt - 1] - 1].num, sizeof(int), 0, (struct sockaddr *)&sockets[i], clientAddrLen);
+				sendto(sd, &clientCards[tt - 1][tableCardNum[tt - 1] - 1].num, sizeof(int), 0, (struct sockaddr *)&sockets[i], clientAddrLen);
 			}
 
 			if(status=='e') //종료
@@ -138,7 +131,7 @@ void * client_module(void * data)
 			//printf("%d\n",turn);
 			tableCardNum[turn]++;
 			clientCardNumber[turn]--;
-			status=*clntCards[turn][tableCardNum[turn]-1].color;
+			status=*clientCards[turn][tableCardNum[turn]-1].color;
 			status_num=turn;
 			pthread_mutex_lock(&mutex);
 			statusCheck[threadNum]=1;
@@ -211,8 +204,8 @@ int main(int argc, char** argv)
 	{
 		for(k=0;k<14;k++)
 		{
-			clntCards[j][k].color=Cards[i].color;
-			clntCards[j][k].num=Cards[i].num;
+			clientCards[j][k].color=Cards[i].color;
+			clientCards[j][k].num=Cards[i].num;
 			i++;
 		}
 		clientCardNumber[j]=14;
